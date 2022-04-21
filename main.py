@@ -1,11 +1,9 @@
 import xml.etree.ElementTree as ET
 from prettytable import PrettyTable
 import sys
-
-import csv  
-
-tree = ET.parse('1539390812340093.xml')
-root = tree.getroot()
+import csv
+from os import listdir
+from os.path import isfile, join
 
 def get_name(root_object):
   general_data = root_object.find("./DADOS-GERAIS")
@@ -91,42 +89,60 @@ def create_data_row(full_name, grad_year, action, bond):
   data_row = [full_name, grad_year, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
   return data_row
 
-
 def process_xml(root_object):
   if is_course(root_object, "Biblioteconomia"):
-    t = PrettyTable(header)
     full_name = get_name(root_object)
     conclusion_year = get_course_grad_conclusion_year(root_object, "Biblioteconomia")
     professional_action_list = get_professional_action_list(root_object)
-    print("Ano de conclusão em Biblioteconomia: " + conclusion_year)
-    print()
     data_rows_list = []
     action_bond_list = get_action_bond_list_from_date(professional_action_list, conclusion_year)
     for action_bond_pair in action_bond_list:
-      #pretty_print_action_bond_pair(action_bond_pair)
-      #print()
       for bond in action_bond_pair['bond_list']:
         data_row = create_data_row(full_name, conclusion_year, action_bond_pair['action'], bond)
         data_rows_list.append(data_row)
-        t.add_row(data_row)
-        print(data_row)
+  return data_rows_list
 
+def process_xml_file(file_name):
+  file = file_name
+  tree = ET.parse(file)
+  root = tree.getroot()
+  return process_xml(root)
+
+def process_all_xml_files():
+  path = './files-to-process'
+  file_name_list = [f for f in listdir(path) if isfile(join(path, f))]
+  final_data_row_list = []
+
+  for file_name in file_name_list:
+    file_path='./files-to-process/' + file_name
+    data_row_list = process_xml_file(file_path)
+    if data_row_list == []:
+      pass
+    else:
+      final_data_row_list = final_data_row_list + data_row_list
+  return final_data_row_list
+
+def pretty_print_table(data_row_list, header):
+  t = PrettyTable(header)
+  for row in data_row_list:
+    t.add_row(row)
   print(t)
 
-def process_all_xml_files(file_list):
-
-file_list = 
-header = ['nome_completo', 'ano_conclusao', 'inicio_vinculo', 'nome_instituição', 'enquadramento_funcional']
-process_xml(root)
-sys.exit()
-
-
-
-with open('values.csv', 'w', encoding='UTF8') as f:
+def generate_csv(data_row_list, file_name, header):
+  with open(file_name, 'w', encoding='UTF8') as f:
     writer = csv.writer(f)
 
     # write the header
     writer.writerow(header)
 
     # write the data
-    writer.writerow(data)
+    for data_row in data_row_list:
+      writer.writerow(data_row)
+
+csv_header = ['nome_completo', 'ano_conclusao_curso', 'inicio_vinculo', 'nome_instituição', 'enquadramento_funcional']
+data_row_list = process_all_xml_files()
+pretty_print_table(data_row_list, csv_header)
+generate_csv(data_row_list, 'teste.csv', csv_header)
+
+sys.exit()
+
