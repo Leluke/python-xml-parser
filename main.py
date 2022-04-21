@@ -85,41 +85,43 @@ def pretty_print_action_bond_pair(action_bond_pair):
       print(bond.attrib['ANO-INICIO'])
       print(bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'])
 
-def create_data_row(full_name, grad_year, action, bond):
-  data_row = [full_name, grad_year, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
+def create_data_row(full_name, grad_year, course_name, action, bond):
+  data_row = [full_name, grad_year, course_name, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
   return data_row
 
-def process_xml(root_object):
-  if is_course(root_object, "Biblioteconomia"):
+def process_xml(root_object, course_name):
+  data_rows_list = []
+  if is_course(root_object, course_name):
     full_name = get_name(root_object)
-    conclusion_year = get_course_grad_conclusion_year(root_object, "Biblioteconomia")
+    conclusion_year = get_course_grad_conclusion_year(root_object, course_name)
     professional_action_list = get_professional_action_list(root_object)
-    data_rows_list = []
     action_bond_list = get_action_bond_list_from_date(professional_action_list, conclusion_year)
     for action_bond_pair in action_bond_list:
       for bond in action_bond_pair['bond_list']:
-        data_row = create_data_row(full_name, conclusion_year, action_bond_pair['action'], bond)
+        data_row = create_data_row(full_name, conclusion_year, course_name, action_bond_pair['action'], bond)
         data_rows_list.append(data_row)
   return data_rows_list
 
-def process_xml_file(file_name):
+def process_xml_file(file_name, course_name):
   file = file_name
   tree = ET.parse(file)
   root = tree.getroot()
-  return process_xml(root)
+  return process_xml(root, course_name)
 
-def process_all_xml_files():
+def process_all_xml_files(course_name):
   path = './files-to-process'
   file_name_list = [f for f in listdir(path) if isfile(join(path, f))]
   final_data_row_list = []
+  data_row_list = []
 
   for file_name in file_name_list:
     file_path='./files-to-process/' + file_name
-    data_row_list = process_xml_file(file_path)
+    data_row_list = process_xml_file(file_path, course_name)
     if data_row_list == []:
       pass
     else:
       final_data_row_list = final_data_row_list + data_row_list
+
   return final_data_row_list
 
 def pretty_print_table(data_row_list, header):
@@ -139,10 +141,22 @@ def generate_csv(data_row_list, file_name, header):
     for data_row in data_row_list:
       writer.writerow(data_row)
 
-csv_header = ['nome_completo', 'ano_conclusao_curso', 'inicio_vinculo', 'nome_instituição', 'enquadramento_funcional']
-data_row_list = process_all_xml_files()
-pretty_print_table(data_row_list, csv_header)
-generate_csv(data_row_list, 'teste.csv', csv_header)
+def process_xmls_to_csv(header, course_name_list):
+  final_data_row_list= []
+  for course_name in course_name_list:
+    data_row_list = process_all_xml_files(course_name)
+    final_data_row_list = final_data_row_list + data_row_list
 
+  pretty_print_table(final_data_row_list, header)
+  generate_csv(final_data_row_list, 'teste.csv', header)
+
+csv_header = ['nome_completo', 'ano_conclusao_curso', 'nome_curso', 'inicio_vinculo', 'nome_instituicao', 'enquadramento_funcional']
+course_name_list = ['Biblioteconomia', 'bibliotecomia', 'Biblioteconimia', 'Biblioteonomia', 'Bilioteconomia']
+
+print('Começando a processar todos os xmls')
+process_xmls_to_csv(csv_header, course_name_list)
+
+print()
+print('Script executado com sucesso')
 sys.exit()
 
