@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from prettytable import PrettyTable
 import sys
 import csv
@@ -30,9 +32,15 @@ def get_course_grad_elem(root_object, course_name):
 
 def get_grad_conclusion_year(grad):
   #Checa se concluiu ou não o curso, se sim retorna o numero do ano, se não retorna falso
-  if grad.attrib['ANO-DE-CONCLUSAO'] == "":
+  #Preciso checar se esse campo existe
+  if 'ANO-DE-CONCLUSAO' not in grad.attrib:
+    print ('Não tem campo ANO-DE-CONCLUSAO')
+    return "not-graduated"
+  elif grad.attrib['ANO-DE-CONCLUSAO'] == "":
+    #print ('ANO-DE-CONCLUSAO vazio')
     return "not-graduated"
   else:
+    #print ('ANO-DE-CONCLUSAO: {}'.format(grad.get('ANO-DE-CONCLUSAO')))
     return grad.attrib['ANO-DE-CONCLUSAO']
 
 def get_course_grad_conclusion_year(root_object, course_name):
@@ -90,6 +98,7 @@ def create_data_row(full_name, grad_year, course_name, action, bond):
   data_row = [full_name, grad_year, course_name, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
   return data_row
 
+#Função da relação original, podemos dar um nome
 def process_xml(root_object, course_name):
   data_rows_list = []
   if is_course(root_object, course_name):
@@ -109,13 +118,26 @@ def process_xml_file(file_name, course_name):
   root = tree.getroot()
   return process_xml(root, course_name)
 
+LINE_UP = '\033[1A'
+LINE_CLEAR = '\x1b[2K'
+
 def process_all_xml_files(course_name, folder_name):
   path = './' + folder_name
   file_name_list = [f for f in listdir(path) if isfile(join(path, f))]
   final_data_row_list = []
   data_row_list = []
 
+  total_files=len(file_name_list)
+  current_file_number = 0
+  print('')
+  print("Total files to process: {}".format(total_files))
   for file_name in file_name_list:
+    current_file_number = current_file_number + 1
+    percentage =  (current_file_number / total_files) * 100
+    print("percent complete: {}".format(percentage), end='\n')
+    print("current file number: {}".format(current_file_number))  
+    print(LINE_UP, end='')
+    print(LINE_UP, end='\r')
     file_path = folder_name + '/' + file_name
     data_row_list = process_xml_file(file_path, course_name)
     if data_row_list == []:
@@ -123,6 +145,7 @@ def process_all_xml_files(course_name, folder_name):
     else:
       final_data_row_list = final_data_row_list + data_row_list
 
+  print("percent complete: {}".format(percentage), end='\n')
   return final_data_row_list
 
 #Recebe lista de tuplas da tabela e um header e printa na tela de maneira organizada
@@ -146,16 +169,27 @@ def generate_csv(data_row_list, file_name, header):
 #Processa os xmls da pasta passada na env folder_name
 def process_xmls_to_csv(header, course_name_list, folder_name):
   final_data_row_list= []
+  now = datetime.now()
+  formatted_date = now.strftime("%Y-%m-%d-time-%H-%M-%S")
+  csv_name = 'export-{}.csv'.format(formatted_date)
+  print('Total de cursos para processar: {}'.format(len(course_name_list)))
   for course_name in course_name_list:
+    print('Curso atualmente sendo processado: {}'.format(course_name))
     data_row_list = process_all_xml_files(course_name, folder_name)
     final_data_row_list = final_data_row_list + data_row_list
 
   pretty_print_table(final_data_row_list, header)
-  generate_csv(final_data_row_list, 'teste.csv', header)
+  generate_csv(final_data_row_list, csv_name, header)
 
 csv_header = ['nome_completo', 'ano_conclusao_curso', 'nome_curso', 'inicio_vinculo', 'nome_instituicao', 'enquadramento_funcional']
-course_name_list = ['Biblioteconomia', 'bibliotecomia', 'Biblioteconimia', 'Biblioteonomia', 'Bilioteconomia']
+
+from course_name_list_simple import course_name_list
+#from course_name_list_full import course_name_list
+
 folder_name = 'files-to-process'
+
+# for value in course_name_list:
+#   print('value: {}'.format(value))
 
 print('Começando a processar todos os xmls')
 process_xmls_to_csv(csv_header, course_name_list, folder_name)
