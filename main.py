@@ -28,6 +28,7 @@ def get_course_grad_elem(root_object, course_name):
   grads_to_check = get_graduation_list(root_object)
   for grad in grads_to_check:
     if course_name in grad.attrib['NOME-CURSO']:
+      #print(grad.attrib['NOME-INSTITUICAO'])
       return grad
 
 def get_grad_conclusion_year(grad):
@@ -39,10 +40,38 @@ def get_grad_conclusion_year(grad):
   else:
     return grad.attrib['ANO-DE-CONCLUSAO']
 
+def get_grad_start_year(grad):
+  if 'ANO-DE-INICIO' not in grad.attrib:
+    print ('Não tem campo ANO-DE-INICIO')
+    return "not-graduated"
+  elif grad.attrib['ANO-DE-INICIO'] == "":
+    return "not-graduated"
+  else:
+    return grad.attrib['ANO-DE-INICIO']
+
+def get_grad_institute(grad):
+  if 'NOME-INSTITUICAO' not in grad.attrib:
+    print ('Não tem campo NOME-INSTITUICAO')
+    return "no-name"
+  elif grad.attrib['NOME-INSTITUICAO'] == "":
+    return "no-name"
+  else:
+    return grad.attrib['NOME-INSTITUICAO']
+
 def get_course_grad_conclusion_year(root_object, course_name):
   course_grad_elem = get_course_grad_elem(root_object, course_name)
   conclusion_year = get_grad_conclusion_year(course_grad_elem)
   return conclusion_year
+
+def get_course_grad_start_year(root_object, course_name):
+  course_grad_elem = get_course_grad_elem(root_object, course_name)
+  start_year = get_grad_start_year(course_grad_elem)
+  return start_year
+
+def get_course_grad_institute(root_object, course_name):
+  course_grad_elem = get_course_grad_elem(root_object, course_name)
+  course_grad_institute = get_grad_institute(course_grad_elem)
+  return course_grad_institute
 
 def get_professional_action_list(root_object):
   professional_action_list = root_object.findall("./DADOS-GERAIS/ATUACOES-PROFISSIONAIS/ATUACAO-PROFISSIONAL")
@@ -90,26 +119,32 @@ def pretty_print_action_bond_pair(action_bond_pair):
       print(bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'])
 
 #Melhoria: Receber a tupla e criar de maneira independente. Passar valor por valor
-def create_data_row(full_name, grad_year, course_name, action, bond):
-  data_row = [full_name, grad_year, course_name, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
+def create_data_row(full_name, grad_start_year , grad_year, course_name, course_grad_institute, action, bond):
+  data_row = [full_name, grad_start_year, grad_year, course_name, course_grad_institute, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
   return data_row
 
-def get_data_row_relation_action_bond(root_object, course_name):
+#professional_action_after_course_conclusion  professional_action_after_course_conclusion relation
+#Para o curso passado, pega o ano de conclusao do curso e usa para definir todas as atuações profissionais que a pessoa teve após concluir o curso
+#Header:
+#nome_completo	ano_conclusao_curso	nome_curso	inicio_vinculo	nome_instituicao	enquadramento_funcional
+def get_data_row_relation_professional_action_after_course_conclusion(root_object, course_name):
   data_rows_list = []
   if is_course(root_object, course_name):
     full_name = get_name(root_object)
     conclusion_year = get_course_grad_conclusion_year(root_object, course_name)
+    start_year = get_course_grad_start_year(root_object, course_name)
+    course_grad_institute = get_course_grad_institute(root_object, course_name)
     professional_action_list = get_professional_action_list(root_object)
     action_bond_list = get_action_bond_list_from_date(professional_action_list, conclusion_year)
     for action_bond_pair in action_bond_list:
       for bond in action_bond_pair['bond_list']:
-        data_row = create_data_row(full_name, conclusion_year, course_name, action_bond_pair['action'], bond)
+        data_row = create_data_row(full_name, start_year, conclusion_year, course_name, course_grad_institute, action_bond_pair['action'], bond)
         data_rows_list.append(data_row)
   return data_rows_list
   
 def process_xml(root_object, course_name, relation):
-  if relation == "action_bond":
-    data_rows_list = get_data_row_relation_action_bond(root_object, course_name)
+  if relation == "professional_action_after_course_conclusion":
+    data_rows_list = get_data_row_relation_professional_action_after_course_conclusion(root_object, course_name)
   else:
     print("Nenhuma extração identificada com o tipo passado: {}".format(relation))
     data_rows_list = []
@@ -188,11 +223,13 @@ def process_xmls_to_csv(header, course_name_list, folder_name, csv_name, relatio
   csv_final_name='{}-{}'.format(relation, csv_name)
   generate_csv(final_data_row_list, csv_final_name, header)
 
-csv_header = ['nome_completo', 'ano_conclusao_curso', 'nome_curso', 'inicio_vinculo', 'nome_instituicao', 'enquadramento_funcional']
+csv_header_dict = { 
+  "professional_action_after_course_conclusion" : ['nome_completo', 'ano_inicio_curso', 'ano_conclusao_curso', 'nome_curso', 'nome_instituicao_curso' , 'inicio_vinculo', 'nome_instituicao_acao_profissional', 'enquadramento_funcional'] 
+}
 
-#from course_name_list_simple import course_name_list
+from course_name_list_simple import course_name_list
 #from course_name_list_full import course_name_list
-from course_name_list_single import course_name_list
+#from course_name_list_single import course_name_list
 
 print('Começando a processar todos os xmls')
 
@@ -203,7 +240,7 @@ csv_name=sys.argv[1]
 folder_name=sys.argv[2]
 relation=sys.argv[3]
 
-process_xmls_to_csv(csv_header, course_name_list, folder_name, csv_name, relation)
+process_xmls_to_csv(csv_header_dict[relation], course_name_list, folder_name, csv_name, relation)
 
 print()
 print('Script executado com sucesso')
