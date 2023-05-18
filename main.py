@@ -167,32 +167,40 @@ def generate_csv(data_row_list, file_name, header):
       writer.writerow(data_row)
 
 #Processa os xmls da pasta passada na env folder_name
-def process_xmls_to_csv(header, course_name_list, folder_name):
+def process_xmls_to_csv(header, course_name_list, folder_name, csv_name):
   final_data_row_list= []
-  now = datetime.now()
-  formatted_date = now.strftime("%Y-%m-%d-time-%H-%M-%S")
-  csv_name = 'export-{}.csv'.format(formatted_date)
-  print('Total de cursos para processar: {}'.format(len(course_name_list)))
+  total_courses = len(course_name_list)
+  course_count = 0
+  print('Total de cursos para processar: {}'.format(total_courses))
+  
   for course_name in course_name_list:
+    course_count = course_count + 1
+    percentage = ( course_count/ total_courses ) * 100
     print('Curso atualmente sendo processado: {}'.format(course_name))
     data_row_list = process_all_xml_files(course_name, folder_name)
     final_data_row_list = final_data_row_list + data_row_list
+    print('Porcentagem de completar todos os cursos: {}'.format(percentage))
 
   pretty_print_table(final_data_row_list, header)
   generate_csv(final_data_row_list, csv_name, header)
 
 csv_header = ['nome_completo', 'ano_conclusao_curso', 'nome_curso', 'inicio_vinculo', 'nome_instituicao', 'enquadramento_funcional']
 
-from course_name_list_simple import course_name_list
+#from course_name_list_simple import course_name_list
 #from course_name_list_full import course_name_list
+from course_name_list_single import course_name_list
 
-folder_name = 'files-to-process'
-
-# for value in course_name_list:
-#   print('value: {}'.format(value))
+#folder_name = 'files-to-process'
 
 print('Começando a processar todos os xmls')
-process_xmls_to_csv(csv_header, course_name_list, folder_name)
+
+now = datetime.now()
+formatted_date = now.strftime("%Y-%m-%d-time-%H-%M-%S")
+
+csv_name=sys.argv[1]
+folder_name=sys.argv[2]
+
+process_xmls_to_csv(csv_header, course_name_list, folder_name, csv_name)
 
 print()
 print('Script executado com sucesso')

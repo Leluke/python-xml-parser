@@ -1,0 +1,1 @@
+course_name_list = [ 'Biblioteconomia' ]
