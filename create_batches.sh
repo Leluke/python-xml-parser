@@ -1,21 +1,27 @@
 #!/bin/bash
-#set -x
+
 NUMBER_OF_FILES=$(ls -l files-to-process | wc -l)
 
 if [ -z $1 ]; then
   echo "Missing argument"
-  echo "./create_batches.sh <number>"
+  echo "./create_batches.sh <numero de batches> <nome da pasta>"
   echo
   echo "example: "
   echo "./create_batches.sh 4"
+  exit
+elif [ -z $2 ]; then
+  echo "Missing argument"
+  echo "./create_batches.sh <numero de batches> <nome da pasta>"
+  echo
+  echo "example: "
+  echo "./create_batches.sh 4 files-to-process"
   exit
 fi
 NUMBER_OF_BATCHES=$1
 
 FILES_PER_BATCH=$((NUMBER_OF_FILES / NUMBER_OF_BATCHES))
 
-echo $FILES_PER_BATCH
-
+echo "Files per batch: $FILES_PER_BATCH"
 
 source_folder="files-to-process"
 destination_base="files-to-process-batch"
@@ -44,3 +50,6 @@ for ((i=0; i<$total_files; i+=file_count)); do
     # Copy the files to the destination folder
     cp "${files_to_copy[@]}" "$destination_folder"
 done
+
+echo "Finished creating batches"
+echo

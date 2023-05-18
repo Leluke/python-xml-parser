@@ -31,16 +31,12 @@ def get_course_grad_elem(root_object, course_name):
       return grad
 
 def get_grad_conclusion_year(grad):
-  #Checa se concluiu ou não o curso, se sim retorna o numero do ano, se não retorna falso
-  #Preciso checar se esse campo existe
   if 'ANO-DE-CONCLUSAO' not in grad.attrib:
     print ('Não tem campo ANO-DE-CONCLUSAO')
     return "not-graduated"
   elif grad.attrib['ANO-DE-CONCLUSAO'] == "":
-    #print ('ANO-DE-CONCLUSAO vazio')
     return "not-graduated"
   else:
-    #print ('ANO-DE-CONCLUSAO: {}'.format(grad.get('ANO-DE-CONCLUSAO')))
     return grad.attrib['ANO-DE-CONCLUSAO']
 
 def get_course_grad_conclusion_year(root_object, course_name):
@@ -98,8 +94,7 @@ def create_data_row(full_name, grad_year, course_name, action, bond):
   data_row = [full_name, grad_year, course_name, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
   return data_row
 
-#Função da relação original, podemos dar um nome
-def process_xml(root_object, course_name):
+def get_data_row_relation_action_bond(root_object, course_name):
   data_rows_list = []
   if is_course(root_object, course_name):
     full_name = get_name(root_object)
@@ -111,17 +106,25 @@ def process_xml(root_object, course_name):
         data_row = create_data_row(full_name, conclusion_year, course_name, action_bond_pair['action'], bond)
         data_rows_list.append(data_row)
   return data_rows_list
+  
+def process_xml(root_object, course_name, relation):
+  if relation == "action_bond":
+    data_rows_list = get_data_row_relation_action_bond(root_object, course_name)
+  else:
+    print("Nenhuma extração identificada com o tipo passado: {}".format(relation))
+    data_rows_list = []
+  return data_rows_list
 
-def process_xml_file(file_name, course_name):
+def process_xml_file(file_name, course_name, relation):
   file = file_name
   tree = ET.parse(file)
   root = tree.getroot()
-  return process_xml(root, course_name)
+  return process_xml(root, course_name, relation)
 
 LINE_UP = '\033[1A'
 LINE_CLEAR = '\x1b[2K'
 
-def process_all_xml_files(course_name, folder_name):
+def process_all_xml_files(course_name, folder_name, relation):
   path = './' + folder_name
   file_name_list = [f for f in listdir(path) if isfile(join(path, f))]
   final_data_row_list = []
@@ -139,7 +142,7 @@ def process_all_xml_files(course_name, folder_name):
     print(LINE_UP, end='')
     print(LINE_UP, end='\r')
     file_path = folder_name + '/' + file_name
-    data_row_list = process_xml_file(file_path, course_name)
+    data_row_list = process_xml_file(file_path, course_name, relation)
     if data_row_list == []:
       pass
     else:
@@ -167,7 +170,7 @@ def generate_csv(data_row_list, file_name, header):
       writer.writerow(data_row)
 
 #Processa os xmls da pasta passada na env folder_name
-def process_xmls_to_csv(header, course_name_list, folder_name, csv_name):
+def process_xmls_to_csv(header, course_name_list, folder_name, csv_name, relation):
   final_data_row_list= []
   total_courses = len(course_name_list)
   course_count = 0
@@ -177,20 +180,19 @@ def process_xmls_to_csv(header, course_name_list, folder_name, csv_name):
     course_count = course_count + 1
     percentage = ( course_count/ total_courses ) * 100
     print('Curso atualmente sendo processado: {}'.format(course_name))
-    data_row_list = process_all_xml_files(course_name, folder_name)
+    data_row_list = process_all_xml_files(course_name, folder_name, relation)
     final_data_row_list = final_data_row_list + data_row_list
     print('Porcentagem de completar todos os cursos: {}'.format(percentage))
 
   pretty_print_table(final_data_row_list, header)
-  generate_csv(final_data_row_list, csv_name, header)
+  csv_final_name='{}-{}'.format(relation, csv_name)
+  generate_csv(final_data_row_list, csv_final_name, header)
 
 csv_header = ['nome_completo', 'ano_conclusao_curso', 'nome_curso', 'inicio_vinculo', 'nome_instituicao', 'enquadramento_funcional']
 
 #from course_name_list_simple import course_name_list
 #from course_name_list_full import course_name_list
 from course_name_list_single import course_name_list
-
-#folder_name = 'files-to-process'
 
 print('Começando a processar todos os xmls')
 
@@ -199,8 +201,9 @@ formatted_date = now.strftime("%Y-%m-%d-time-%H-%M-%S")
 
 csv_name=sys.argv[1]
 folder_name=sys.argv[2]
+relation=sys.argv[3]
 
-process_xmls_to_csv(csv_header, course_name_list, folder_name, csv_name)
+process_xmls_to_csv(csv_header, course_name_list, folder_name, csv_name, relation)
 
 print()
 print('Script executado com sucesso')
