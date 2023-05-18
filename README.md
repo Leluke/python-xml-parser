@@ -27,3 +27,6 @@ Para acelerar o processamento, temos o script parallel_process_files.sh que queb
 
 Após a execução do script, uma nova pasta "export" será criada, e dentro dela teremos subpastas para cada execução do script. O nome da pasta tem a data da execução e o horário para facilitar a identificação das execuções
 
+## Lista de extrações disponíveis
+
+* action_bond
