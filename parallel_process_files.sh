@@ -154,3 +154,12 @@ echo "Removing file batches folder"
 
 rm -rf ${FILES_TO_PROCESS_FOLDER_NAME}-batch
 echo "FINISHED"
+echo
+echo "Reports generated:"
+echo "${EXPORT_FOLDER}/${RELATION_TO_EXTRACT}-export.csv"
+echo
+echo "Execution outputs:"
+
+for i in $(seq 1 $NUMBER_OF_BATCHES); do
+  echo "${OUTPUT_FOLDER}/output_$i.txt"
+done
