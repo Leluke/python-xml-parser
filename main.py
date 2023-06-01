@@ -46,7 +46,9 @@ def get_postgrad_list_from_date(root_object, initial_date):
   
   for postgrad in postgrad_list:
     #Checa se ano de inicio da pos é maior ou igual ao initial date passado
-    if postgrad.attrib['ANO-DE-INICIO'] >= initial_date :
+    #Pega ano de inicio
+    #get_grad_start_year(postgrad)
+    if get_grad_start_year(postgrad) >= initial_date :
       return_list.append(postgrad)
     else:
       pass

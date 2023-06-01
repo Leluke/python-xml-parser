@@ -29,4 +29,5 @@ Após a execução do script, uma nova pasta "export" será criada, e dentro del
 
 ## Lista de extrações disponíveis
 
-* professional_action_after_course_conclusion: Extrai
+* professional_action_after_course_conclusion: Cada linha da tabela representa uma relação profissional que foi começada após a conclusão do curso de graduação indicado na linha
+* postgrad_after_course_conclusion: Cada linha da tabela representa uma pós graduação que foi começada após a conclusão do curso de graduação indicado na linha
