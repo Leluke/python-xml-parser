@@ -20,9 +20,37 @@ def get_graduation_list(root_object):
   grad_list = root_object.findall("./DADOS-GERAIS/FORMACAO-ACADEMICA-TITULACAO/GRADUACAO")
   return grad_list
 
-def get_improvement_list(root_object):
-  improvement_list = root_object.findall("./DADOS-GERAIS/FORMACAO-ACADEMICA-TITULACAO/APERFEICOAMENTO")
-  return improvement_list
+def get_masters_list(root_object):
+  masters_list = root_object.findall("./DADOS-GERAIS/FORMACAO-ACADEMICA-TITULACAO/MESTRADO")
+  return masters_list
+
+def get_doctorates_list(root_object):
+  doctorates_list = root_object.findall("./DADOS-GERAIS/FORMACAO-ACADEMICA-TITULACAO/DOUTORADO")
+  return doctorates_list
+
+def get_postgrad_list(root_object):
+  postgrad_list = []
+  academic_formation_object = root_object.find("./DADOS-GERAIS/FORMACAO-ACADEMICA-TITULACAO")
+  for academic_formation in academic_formation_object:
+    if academic_formation.tag == 'GRADUACAO':
+      pass
+    else:
+      postgrad_list.append(academic_formation)
+  
+  return postgrad_list
+
+def get_postgrad_list_from_date(root_object, initial_date):
+  return_list = []
+  #Pega lista de todas as pos graduacoes
+  postgrad_list = get_postgrad_list(root_object)
+  
+  for postgrad in postgrad_list:
+    #Checa se ano de inicio da pos é maior ou igual ao initial date passado
+    if postgrad.attrib['ANO-DE-INICIO'] >= initial_date :
+      return_list.append(postgrad)
+    else:
+      pass
+  return return_list
 
 def is_course(root_object, course_name):
   grads_to_check = get_graduation_list(root_object)
@@ -38,16 +66,12 @@ def get_grad_elem_course_name_list(root_object):
   for grad in graduations_to_get_course_name:
     grad_elem_course_name_list.append(grad.attrib['NOME-CURSO'])
   
-  #TESTE
-  #print('grad_elem_course_name_list:')
-  #print(grad_elem_course_name_list)
   return grad_elem_course_name_list
 
 def get_course_grad_elem(root_object, course_name):
   grads_to_check = get_graduation_list(root_object)
   for grad in grads_to_check:
     if course_name == grad.attrib['NOME-CURSO']:
-      #print(grad.attrib['NOME-INSTITUICAO'])
       return grad
 
 def get_grad_conclusion_year(grad):
@@ -76,6 +100,26 @@ def get_grad_institute(grad):
     return "no-name"
   else:
     return grad.attrib['NOME-INSTITUICAO']
+
+def get_grad_course_name(grad):
+  if 'NOME-CURSO' not in grad.attrib:
+    print ('Não tem campo NOME-CURSO')
+    return "no-name"
+  elif grad.attrib['NOME-CURSO'] == "":
+    return "no-name"
+  else:
+    return grad.attrib['NOME-CURSO']
+# get_postgrad_start_year(postgrad):
+#   if 'ANO-DE-CONCLUSAO' not in postgrad.attrib:
+#     print ('Não tem campo ANO-DE-CONCLUSAO')
+#     return "not-graduated"
+#   elif grad.attrib['ANO-DE-CONCLUSAO'] == "":
+#     return "not-graduated"
+#   else:
+#     return grad.attrib['ANO-DE-CONCLUSAO']
+# get_postgrad_conclusion_year(postgrad):
+# get_postgrad_institute(postgrad):
+# get_postgrad_course(postgrad):
 
 def get_course_grad_conclusion_year(root_object, course_name):
   course_grad_elem = get_course_grad_elem(root_object, course_name)
@@ -116,6 +160,7 @@ def get_action_bond_list_from_date(professional_action_list, initial_date):
   return return_list
 
 
+
 def print_action_bond_pair(action_bond_pair):
   if action_bond_pair['bond_list'] == []:
     pass
@@ -139,8 +184,21 @@ def pretty_print_action_bond_pair(action_bond_pair):
       print(bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'])
 
 #Melhoria: Receber a tupla e criar de maneira independente. Passar valor por valor
+def create_data_row_generic():
+  data_row = [full_name, grad_start_year, grad_year, course_name, course_grad_institute, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
+  return data_row
+
+
 def create_data_row(full_name, grad_start_year , grad_year, course_name, course_grad_institute, action, bond):
   data_row = [full_name, grad_start_year, grad_year, course_name, course_grad_institute, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
+  return data_row
+
+def create_data_row_relation_professional_action_after_course_conclusion(full_name, grad_start_year , grad_year, course_name, course_grad_institute, action, bond):
+  data_row = [full_name, grad_start_year, grad_year, course_name, course_grad_institute, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
+  return data_row
+
+def create_data_row_relation_postgrad_after_course_conclusion(full_name, grad_start_year , grad_year, course_name, course_grad_institute, postgrad_start_year, postgrad_conclusion_year, postgrad_institue, postgrad_course):
+  data_row = [full_name, grad_start_year, grad_year, course_name, course_grad_institute, postgrad_start_year, postgrad_conclusion_year, postgrad_institue, postgrad_course]
   return data_row
 
 #professional_action_after_course_conclusion  professional_action_after_course_conclusion relation
@@ -160,7 +218,8 @@ def get_data_row_relation_professional_action_after_course_conclusion(root_objec
     action_bond_list = get_action_bond_list_from_date(professional_action_list, conclusion_year)
     for action_bond_pair in action_bond_list:
       for bond in action_bond_pair['bond_list']:
-        data_row = create_data_row(full_name, start_year, conclusion_year, course_name, course_grad_institute, action_bond_pair['action'], bond)
+        data_row = [full_name, grad_start_year, grad_year, course_name, course_grad_institute, bond.attrib['ANO-INICIO'], action.attrib['NOME-INSTITUICAO'], bond.attrib['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO']]
+        #data_row = create_data_row(full_name, start_year, conclusion_year, course_name, course_grad_institute, action_bond_pair['action'], bond)
         data_rows_list.append(data_row)
   return data_rows_list
 
@@ -195,9 +254,9 @@ def get_data_row_relation_professional_action_after_course_conclusion(root_objec
 #       data_rows_list.append(data_row)
 #   return data_rows_list
 
-#improvements_after_course_conclusion  improvements_after_course_conclusion relation
+#postgrad_after_course_conclusion  postgrad_after_course_conclusion relation
 #Para o curso passado, pega o ano de conclusao do curso e usa para definir todos os aperfeiçoamentos que a pessoa fez após concluir o curso
-def get_data_row_relation_improvements_after_course_conclusion(root_object, course_name):
+def get_data_row_relation_postgrad_after_course_conclusion(root_object, course_name):
   data_rows_list = []
   if is_course(root_object, course_name):
     #nome_completo
@@ -209,19 +268,27 @@ def get_data_row_relation_improvements_after_course_conclusion(root_object, cour
     #nome_instituicao_curso
     course_grad_institute = get_course_grad_institute(root_object, course_name)
 
-    #Muda a partir daqui
-    improvement_list = get_improvement_list(root_object)
-    #professional_action_list = get_professional_action_list(root_object)
-    action_bond_list = get_action_bond_list_from_date(professional_action_list, conclusion_year)
-    for action_bond_pair in action_bond_list:
-      for bond in action_bond_pair['bond_list']:
-        data_row = create_data_row(full_name, start_year, conclusion_year, course_name, course_grad_institute, action_bond_pair['action'], bond)
-        data_rows_list.append(data_row)
+    #['nome_completo', 'ano_inicio_curso', 'ano_conclusao_curso', 'nome_curso', 'nome_instituicao_curso' , 'inicio_pos_graduacao', 'nome_instituicao_pos_graduacao', 'nome_curso_pos_graduacao'] 
+
+    postgrad_list_from_date = get_postgrad_list_from_date(root_object, conclusion_year)
+    #action_bond_list = get_action_bond_list_from_date(professional_action_list, conclusion_year)
+    for postgrad in postgrad_list_from_date:
+      postgrad_start_year = get_grad_start_year(postgrad)
+      postgrad_conclusion_year = get_grad_conclusion_year(postgrad)
+      postgrad_institue = get_grad_institute(postgrad)
+      postgrad_course_name = get_grad_course_name(postgrad)
+      postgrad_type = postgrad.tag
+
+      #data_row = create_data_row(full_name, start_year, conclusion_year, course_name, course_grad_institute, postgrad_start_year, postgrad_conclusion_year, postgrad_institue, postgrad_course)
+      data_row = [full_name, start_year, conclusion_year, course_name, course_grad_institute, postgrad_start_year, postgrad_conclusion_year, postgrad_type, postgrad_institue, postgrad_course_name]
+      data_rows_list.append(data_row)
   return data_rows_list
   
 def process_xml(root_object, course_name, relation):
   if relation == "professional_action_after_course_conclusion":
     data_rows_list = get_data_row_relation_professional_action_after_course_conclusion(root_object, course_name)
+  elif relation == "postgrad_after_course_conclusion":
+    data_rows_list = get_data_row_relation_postgrad_after_course_conclusion(root_object, course_name)
   else:
     print("Nenhuma extração identificada com o tipo passado: {}".format(relation))
     data_rows_list = []
@@ -242,6 +309,8 @@ def process_xml_filterless(root_object, relation):
   for course_name in grad_elem_course_name_list:
     if relation == "professional_action_after_course_conclusion":
       data_rows_list = get_data_row_relation_professional_action_after_course_conclusion(root_object, course_name)
+    elif relation == "postgrad_after_course_conclusion":
+      data_rows_list = get_data_row_relation_postgrad_after_course_conclusion(root_object, course_name)
     else:
       print("Nenhuma extração identificada com o tipo passado: {}".format(relation))
       data_rows_list = []
@@ -304,10 +373,10 @@ def process_all_xml_files_filterless(folder_name, relation):
   for file_name in file_name_list:
     current_file_number = current_file_number + 1
     percentage =  (current_file_number / total_files) * 100
-    print("percent complete: {}".format(percentage), end='\n')
-    print("current file number: {}".format(current_file_number))  
-    print(LINE_UP, end='')
-    print(LINE_UP, end='\r')
+    #print("percent complete: {}".format(percentage), end='\n')
+    #print("current file number: {}".format(current_file_number))  
+    #print(LINE_UP, end='')
+    #print(LINE_UP, end='\r')
     file_path = folder_name + '/' + file_name
     data_row_list = process_xml_file_filterless(file_path, relation)
     if data_row_list == []:
@@ -315,7 +384,7 @@ def process_all_xml_files_filterless(folder_name, relation):
     else:
       final_data_row_list = final_data_row_list + data_row_list
 
-  print("percent complete: {}".format(percentage), end='\n')
+  #print("percent complete: {}".format(percentage), end='\n')
   return final_data_row_list
 
 #Recebe lista de tuplas da tabela e um header e printa na tela de maneira organizada
@@ -359,10 +428,6 @@ def process_xmls_to_csv_course_filter(header, course_name_list, folder_name, csv
   csv_final_name='{}-{}'.format(relation, csv_name)
   generate_csv(final_data_row_list, csv_final_name, header)
 
-csv_header_dict = { 
-  "professional_action_after_course_conclusion" : ['nome_completo', 'ano_inicio_curso', 'ano_conclusao_curso', 'nome_curso', 'nome_instituicao_curso' , 'inicio_vinculo', 'nome_instituicao_acao_profissional', 'enquadramento_funcional'] 
-}
-
 #Novo algoritmo: Processa os XMLs apenas uma vez. Pega o curso do campo graduação, pega o ano de conclusão do curso e usa ele no
 #processo original, pegando atuações profissionais realizadas após a conclusão de curso.
 def process_xmls_to_csv_filterless(header, folder_name, csv_name, relation):
@@ -389,7 +454,8 @@ def process_xmls_to_csv_filterless(header, folder_name, csv_name, relation):
   generate_csv(final_data_row_list, csv_final_name, header)
 
 csv_header_dict = { 
-  "professional_action_after_course_conclusion" : ['nome_completo', 'ano_inicio_curso', 'ano_conclusao_curso', 'nome_curso', 'nome_instituicao_curso' , 'inicio_vinculo', 'nome_instituicao_acao_profissional', 'enquadramento_funcional'] 
+  "professional_action_after_course_conclusion" : ['nome_completo', 'ano_inicio_curso', 'ano_conclusao_curso', 'nome_curso', 'nome_instituicao_curso' , 'inicio_vinculo', 'nome_instituicao_acao_profissional', 'enquadramento_funcional'],
+  "postgrad_after_course_conclusion" : ['nome_completo', 'ano_inicio_curso', 'ano_conclusao_curso', 'nome_curso', 'nome_instituicao_curso' , 'inicio_pos_graduacao', 'conclusao_pos_graduacao', 'tipo_pos_graduacao' ,'nome_instituicao_pos_graduacao', 'nome_curso_pos_graduacao'] 
 }
 
 #from course_name_list_simple import course_name_list
