@@ -1,5 +1,9 @@
 # python-xml-parser
 
+## O que é?
+
+Esse projeto contem scripts com funcionalidade para extrair relações de XMLs da plataforma Lattes
+
 ## Como usar
 
 O script pode ser usado diretamente à partir de um shell rodando o comando:
